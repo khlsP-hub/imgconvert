@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ImgConvert — Image Format Converter</title>
+  <meta name="description" content="Konversi gambar ke format apapun, 100% di browser. Tidak ada upload ke server." />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🖼</div>
+    img<span>convert</span>
+  </div>
+  <div class="header-right">
+    <div class="header-badges">
+      <span class="badge">maks. 50 MB / file</span>
+      <span class="badge green">🔒 100% lokal · no upload</span>
+    </div>
+    <!-- FEATURE 7: Theme toggle -->
+    <button id="theme-toggle" title="Mode Terang" aria-label="Toggle tema">☀</button>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+
+    <div class="hero">
+      <h1>Konversi gambar<br>ke <em>format apapun.</em></h1>
+      <p class="subtitle">
+        Semua proses terjadi langsung di browser kamu — tidak ada data yang dikirim ke server.<br>
+        PNG · JPG · WEBP · GIF · BMP · AVIF · TIFF · ICO, dengan resize &amp; rename batch.
+      </p>
+    </div>
+
+    <div id="upload-alert" style="display:none; margin-bottom:12px;"></div>
+
+    <div id="workspace">
+
+      <!-- STATE: EMPTY -->
+      <div id="ws-empty" class="ws-panel">
+        <div id="drop-zone" tabindex="0" role="button" aria-label="Klik atau tekan Enter untuk memilih gambar">
+          <input type="file" id="file-input" accept="image/*" multiple tabindex="-1" aria-label="Pilih gambar" title="Pilih gambar" />
+          <span class="drop-icon">⬆</span>
+          <p class="drop-text">Klik atau seret gambar ke sini</p>
+          <p class="drop-hint">PNG · JPG · WEBP · GIF · BMP · AVIF · SVG · TIFF · ICO · Multiple file didukung</p>
+          <!-- FEATURE 4: Paste hint -->
+          <p class="drop-paste-hint">atau tekan <kbd>Ctrl+V</kbd> untuk paste dari clipboard</p>
+          <span class="drop-limit-tag">⚠ Maks. <strong>50 MB</strong> per file &nbsp;·&nbsp; Disarankan &lt;20 MB untuk performa optimal</span>
+        </div>
+      </div>
+
+      <!-- STATE: FILLED -->
+      <div id="ws-filled" class="ws-panel" style="display:none;">
+
+        <!-- CARD 1: File list -->
+        <div class="ws-card">
+          <div class="ws-card-header">
+            <span id="ws-file-count" class="section-label">0 file dipilih</span>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <label class="add-more-btn" for="file-input-more">
+                + Tambah
+                <input type="file" id="file-input-more" accept="image/*" multiple style="display:none;" />
+              </label>
+              <button class="clear-all-btn" id="clear-all-btn">Hapus semua</button>
+            </div>
+          </div>
+          <!-- FEATURE 3: file-item rows have drag handles, rendered by app.js -->
+          <div id="file-list" class="ws-file-scroll"></div>
+        </div>
+
+        <!-- CARD 2+3: Format & Opsi -->
+        <div class="ws-options-row">
+
+          <div class="ws-card">
+            <div class="ws-card-header">
+              <span class="section-label">Format Output</span>
+            </div>
+            <div class="ws-card-body">
+              <div class="format-grid">
+                <button class="fmt-btn active" data-fmt="png">PNG</button>
+                <button class="fmt-btn" data-fmt="jpg">JPG</button>
+                <button class="fmt-btn" data-fmt="webp">WEBP</button>
+                <button class="fmt-btn" data-fmt="gif">GIF<span class="fmt-badge partial">static</span></button>
+                <button class="fmt-btn" data-fmt="bmp">BMP</button>
+                <button class="fmt-btn" data-fmt="avif">AVIF<span class="fmt-badge partial">modern</span></button>
+                <button class="fmt-btn" data-fmt="tiff">TIFF<span class="fmt-badge limited">terbatas</span></button>
+                <button class="fmt-btn" data-fmt="ico">ICO<span class="fmt-badge limited">32px</span></button>
+              </div>
+              <div id="format-warning" style="margin-top:10px;"></div>
+            </div>
+          </div>
+
+          <div class="ws-card">
+            <div class="ws-card-header">
+              <span class="section-label">Opsi Konversi</span>
+            </div>
+            <div class="ws-card-body">
+
+              <div class="opt-row" id="quality-row">
+                <span class="opt-lbl">Kualitas<small>JPG · WEBP · AVIF</small></span>
+                <input type="range" id="quality-slider" min="10" max="100" value="92" step="1" />
+                <span class="val-display" id="quality-val">92%</span>
+                <!-- FEATURE 8: Estimate badge -->
+                <span id="estimate-badge"></span>
+              </div>
+
+              <div class="opt-row">
+                <span class="opt-lbl">Resize<small>opsional</small></span>
+                <div class="size-inputs">
+                  <input type="number" id="resize-w" min="1" max="8000" placeholder="W" />
+                  <span>×</span>
+                  <input type="number" id="resize-h" min="1" max="8000" placeholder="H" />
+                  <span class="unit-label">px</span>
+                </div>
+              </div>
+              <div class="opt-row opt-sub">
+                <label class="checkbox-row">
+                  <input type="checkbox" id="keep-aspect" checked />
+                  <span>Pertahankan rasio aspek</span>
+                </label>
+              </div>
+
+              <div class="opt-row opt-hidden" id="bg-row">
+                <span class="opt-lbl">BG<small>transparan→opaque</small></span>
+                <div class="color-pick-row">
+                  <input type="color" id="bg-color" value="#ffffff" />
+                  <span class="color-hex" id="bg-color-hex">#FFFFFF</span>
+                </div>
+              </div>
+
+              <div class="opt-row">
+                <span class="opt-lbl">Rename<small>opsional</small></span>
+                <input type="text" class="rename-input" id="rename-pattern" placeholder="Nama asli dipakai jika kosong" />
+              </div>
+              <p class="rename-hint">
+                <code>{name}</code> nama asli &nbsp;·&nbsp; <code>{n}</code> nomor urut
+              </p>
+
+              <!-- FEATURE 6: EXIF strip toggle -->
+              <div class="opt-row" style="margin-top:4px;">
+                <span class="opt-lbl">EXIF<small>metadata</small></span>
+                <label class="checkbox-row">
+                  <input type="checkbox" id="strip-exif" checked />
+                  <span>Hapus metadata EXIF <small style="color:var(--success);font-family:'DM Mono',monospace;">(privasi ✓)</small></span>
+                </label>
+              </div>
+
+            </div>
+          </div>
+
+        </div><!-- ws-options-row -->
+
+        <!-- Progress -->
+        <div class="progress-bar" id="progress-bar">
+          <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+        </div>
+        <div class="progress-row" id="progress-label-row" style="display:none;">
+          <span id="progress-label" style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);"></span>
+        </div>
+
+        <!-- Tombol -->
+        <div class="ws-actions">
+          <button id="convert-btn">Konversi Semua</button>
+          <button id="download-all">⬇ Unduh ZIP</button>
+        </div>
+
+      </div><!-- ws-filled -->
+    </div><!-- workspace -->
+
+    <div class="section" style="margin-top:2.5rem;">
+      <div class="section-header">
+        <span class="section-label">Catatan Limitasi</span>
+      </div>
+      <div class="limits-grid">
+        <div class="limit-card"><div class="limit-card-title"><span class="limit-ok">✓</span> PNG · JPG · WEBP</div><div class="limit-card-body">Didukung penuh di semua browser modern.</div></div>
+        <div class="limit-card"><div class="limit-card-title"><span class="limit-partial">~</span> GIF</div><div class="limit-card-body">Hanya gambar diam. Animasi tidak bisa dibuat via browser.</div></div>
+        <div class="limit-card"><div class="limit-card-title"><span class="limit-partial">~</span> AVIF</div><div class="limit-card-body">Butuh Chrome 85+, Edge 85+, Firefox 93+.</div></div>
+        <div class="limit-card"><div class="limit-card-title"><span class="limit-partial">~</span> TIFF</div><div class="limit-card-body">Output menggunakan PNG encoding. Kompatibilitas terbatas.</div></div>
+        <div class="limit-card"><div class="limit-card-title"><span class="limit-partial">~</span> ICO</div><div class="limit-card-body">PNG 32×32 berekstensi .ico. Bukan multi-size ICO.</div></div>
+        <div class="limit-card"><div class="limit-card-title"><span class="limit-no">✗</span> RAW Kamera</div><div class="limit-card-body">CR2, NEF, ARW tidak didukung browser.</div></div>
+        <div class="limit-card"><div class="limit-card-title"><span class="limit-no">✗</span> File &gt; 50 MB</div><div class="limit-card-body">Ditolak otomatis. 20–50 MB mungkin lambat.</div></div>
+        <div class="limit-card"><div class="limit-card-title"><span class="limit-partial">~</span> SVG Input</div><div class="limit-card-body">Font eksternal &amp; efek kompleks mungkin tidak ter-render.</div></div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  imgconvert · berjalan sepenuhnya di browser · tidak ada data yang dikirim ke server
+</footer>
+
+<!-- FEATURE 1: Before/After Preview Modal -->
+<div id="preview-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-label">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">
+        <span id="modal-title-label">Perbandingan Before / After</span>
+      </div>
+      <button class="modal-close" id="modal-close-btn" aria-label="Tutup preview">✕</button>
+    </div>
+
+    <div class="modal-compare" id="modal-compare">
+      <!-- Right = converted (full width, behind) -->
+      <div id="preview-right">
+        <img id="preview-conv" src="" alt="Hasil konversi" />
+      </div>
+      <!-- Left = original (clipped, in front) -->
+      <div id="preview-left">
+        <img id="preview-orig" src="" alt="Gambar original" />
+      </div>
+      <!-- Divider line -->
+      <div id="preview-divider"></div>
+    </div>
+
+    <div class="modal-labels">
+      <div class="modal-label"><strong>Sebelum</strong> · <span id="preview-orig-meta"></span></div>
+      <div class="modal-label" style="text-align:right;"><strong>Sesudah</strong> · <span id="preview-conv-meta"></span></div>
+    </div>
+
+    <div class="modal-slider-row">
+      <input type="range" id="preview-slider" min="0" max="100" value="50"
+             aria-label="Geser untuk membandingkan gambar" />
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="js/converter.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
