@@ -51,7 +51,7 @@
 
 ## 🔒 Privasi
 
-Semua proses konversi terjadi **100% di browser kamu** menggunakan Canvas API bawaan browser. Tidak ada gambar yang dikirim ke server manapun. Tidak ada tracking. Tidak ada iklan.
+Semua proses konversi terjadi **100% di browser brok** menggunakan Canvas API bawaan browser. Tidak ada gambar yang dikirim ke server manapun. Tidak ada tracking. Tidak ada iklan.
 
 ---
 
@@ -99,4 +99,4 @@ cd imgconvert
 
 ---
 
-*Dibuat dengan ☕ — berjalan sepenuhnya di browser kamu.*
+*Dibuat dengan ☕ — berjalan sepenuhnya di browser gais.*
