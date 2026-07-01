@@ -42,10 +42,10 @@
       <!-- STATE: EMPTY -->
       <div id="ws-empty" class="ws-panel">
         <div id="drop-zone" tabindex="0" role="button" aria-label="Klik atau tekan Enter untuk memilih gambar">
-          <input type="file" id="file-input" accept="image/*" multiple tabindex="-1" aria-label="Pilih gambar" title="Pilih gambar" />
+          <input type="file" id="file-input" accept=".png,.jpg,.jpeg,.webp,.gif,.bmp,.avif,.tif,.tiff,.ico,.svg,.jfif,.pdf,.html,.htm" multiple tabindex="-1" aria-label="Pilih gambar atau dokumen" title="Pilih gambar atau dokumen" />
           <span class="drop-icon">⬆</span>
-          <p class="drop-text">Klik atau seret gambar ke sini</p>
-          <p class="drop-hint">PNG · JPG · WEBP · GIF · BMP · AVIF · SVG · TIFF · ICO · Multiple file didukung</p>
+          <p class="drop-text">Klik atau seret gambar / dokumen ke sini</p>
+          <p class="drop-hint">Gambar (PNG · JPG · WEBP · GIF · BMP · AVIF · SVG · TIFF · ICO) &nbsp;·&nbsp; Dokumen (PDF · HTML) · Multiple file didukung</p>
           <!-- FEATURE 4: Paste hint -->
           <p class="drop-paste-hint">atau tekan <kbd>Ctrl+V</kbd> untuk paste dari clipboard</p>
           <span class="drop-limit-tag">⚠ Maks. <strong>50 MB</strong> per file &nbsp;·&nbsp; Disarankan &lt;20 MB untuk performa optimal</span>
@@ -62,7 +62,7 @@
             <div style="display:flex; gap:8px; align-items:center;">
               <label class="add-more-btn" for="file-input-more">
                 + Tambah
-                <input type="file" id="file-input-more" accept="image/*" multiple style="display:none;" />
+                <input type="file" id="file-input-more" accept=".png,.jpg,.jpeg,.webp,.gif,.bmp,.avif,.tif,.tiff,.ico,.svg,.jfif,.pdf,.html,.htm" multiple style="display:none;" />
               </label>
               <button class="clear-all-btn" id="clear-all-btn">Hapus semua</button>
             </div>
@@ -88,6 +88,11 @@
                 <button class="fmt-btn" data-fmt="avif">AVIF<span class="fmt-badge partial">modern</span></button>
                 <button class="fmt-btn" data-fmt="tiff">TIFF<span class="fmt-badge limited">terbatas</span></button>
                 <button class="fmt-btn" data-fmt="ico">ICO<span class="fmt-badge limited">32px</span></button>
+              </div>
+              <div class="format-doc-label">Dokumen</div>
+              <div class="format-grid format-grid-doc">
+                <button class="fmt-btn" data-fmt="pdf">PDF<span class="fmt-badge new">baru</span></button>
+                <button class="fmt-btn" data-fmt="html">HTML<span class="fmt-badge new">baru</span></button>
               </div>
               <div id="format-warning" style="margin-top:10px;"></div>
             </div>
@@ -167,6 +172,19 @@
           <button id="download-all">⬇ Unduh ZIP</button>
         </div>
 
+        <!-- Hasil konversi dokumen (PDF/HTML/gabungan) -->
+        <div class="ws-card" id="doc-results" style="display:none; margin-top:14px;">
+          <div class="ws-card-header">
+            <span class="section-label">Hasil Konversi Dokumen</span>
+            <button class="add-more-btn" id="doc-zip-btn" style="display:none;">⬇ Unduh Semua (ZIP)</button>
+          </div>
+          <div class="ws-card-body">
+            <div id="doc-results-notes"></div>
+            <div id="doc-results-list" class="doc-results-list"></div>
+            <p id="doc-results-empty" class="rename-hint" style="display:none;">Tidak ada output yang dihasilkan. Cek catatan di atas.</p>
+          </div>
+        </div>
+
       </div><!-- ws-filled -->
     </div><!-- workspace -->
 
@@ -229,8 +247,13 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<!-- Document conversion libraries (HTML↔PDF, PDF→Image) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="js/converter.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/docconvert.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

@@ -6,8 +6,9 @@
  */
 
 (() => {
-  let files   = [];
-  let results = [];
+  let files      = [];
+  let results    = [];
+  let docOutputs = [];   // outputs from document conversions (PDF/HTML/merged)
 
   // ── Element refs ──
   const wsEmpty        = document.getElementById('ws-empty');
@@ -70,10 +71,19 @@
   });
 
   function updateFormatUI() {
-    const lossy = ['jpg','webp','avif'].includes(targetFormat);
+    const isDocOut = targetFormat === 'pdf' || targetFormat === 'html';
+    // Quality applies to lossy image output, and to PDF (embedded JPEG) for pdf output.
+    const lossy = ['jpg','webp','avif'].includes(targetFormat) || targetFormat === 'pdf';
     qualityRow.classList.toggle('opt-hidden', !lossy);
+    // BG / resize / EXIF only make sense for image output.
     const needsBg = ['jpg','bmp','gif','tiff','ico'].includes(targetFormat);
     bgRow.classList.toggle('opt-hidden', !needsBg);
+    const resizeRow = resizeW.closest('.opt-row');
+    const keepAspectRow = keepAspect.closest('.opt-row');
+    const exifRow = stripExifToggle ? stripExifToggle.closest('.opt-row') : null;
+    if (resizeRow)     resizeRow.classList.toggle('opt-hidden', isDocOut);
+    if (keepAspectRow) keepAspectRow.classList.toggle('opt-hidden', isDocOut);
+    if (exifRow)       exifRow.classList.toggle('opt-hidden', isDocOut);
     resizeW.placeholder = targetFormat === 'ico' ? '32' : 'W';
     resizeH.placeholder = targetFormat === 'ico' ? '32' : 'H';
     UI.renderFormatWarning(targetFormat);
@@ -85,6 +95,7 @@
   // ══════════════════════════════════════════
   function updateEstimate() {
     if (!estimateBadge) return;
+    if (targetFormat === 'pdf' || targetFormat === 'html') { estimateBadge.style.display = 'none'; return; }
     // Use dimensions from first loaded file if available
     const firstFile = files[0];
     if (!firstFile || !firstFile._naturalW) { estimateBadge.style.display = 'none'; return; }
@@ -118,6 +129,7 @@
   // Preload natural dimensions for estimate
   function preloadDimensions(file) {
     if (file._naturalW) return;
+    if (typeof DocConverter !== 'undefined' && DocConverter.detectKind(file) !== 'image') return;
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => { URL.revokeObjectURL(url); file._naturalW = img.naturalWidth; file._naturalH = img.naturalHeight; updateEstimate(); };
@@ -182,7 +194,7 @@
       preloadDimensions(f);
     });
     if (rejected > 0) {
-      UI.showAlert('upload-alert', 'danger', `${rejected} file ditolak`, `File melebihi ${Converter.MAX_MB}MB atau bukan format gambar.`);
+      UI.showAlert('upload-alert', 'danger', `${rejected} file ditolak`, `File melebihi ${Converter.MAX_MB}MB atau bukan gambar/PDF/HTML.`);
       setTimeout(() => UI.hideAlert('upload-alert'), 5000);
     }
     resetResults();
@@ -205,7 +217,15 @@
   function resetResults() {
     results = [];
     downloadAllBtn.style.display = 'none';
+    hideDocResults();
     updateEstimate();
+  }
+
+  function hideDocResults() {
+    docOutputs.forEach(o => { if (o.url) URL.revokeObjectURL(o.url); });
+    docOutputs = [];
+    const card = document.getElementById('doc-results');
+    if (card) card.style.display = 'none';
   }
 
   // ══════════════════════════════════════════
@@ -257,8 +277,13 @@
 
     files.forEach((file, i) => {
       const res = results[i];
-      if (!file._thumbUrl) file._thumbUrl = URL.createObjectURL(file);
+      const kind = (typeof DocConverter !== 'undefined') ? DocConverter.detectKind(file) : 'image';
+      if (kind === 'image' && !file._thumbUrl) file._thumbUrl = URL.createObjectURL(file);
       if (res && res.blob && !res.url) res.url = URL.createObjectURL(res.blob);
+
+      const thumbHTML = kind === 'image'
+        ? `<img class="file-thumb" src="${file._thumbUrl}" alt="" />`
+        : `<div class="file-thumb thumb-doc">${kind === 'pdf' ? 'PDF' : kind === 'html' ? 'HTML' : '?'}</div>`;
 
       const item = document.createElement('div');
       item.className = 'file-item';
@@ -287,19 +312,22 @@
           <a class="dl-btn" href="${res.url}" download="${res.filename}">Unduh</a>`;
       }
 
-      // FEATURE 5 — Per-file format override dropdown
+      // FEATURE 5 — Per-file format override dropdown (image files only)
       const allFmts = Object.keys(Converter.FORMAT_MAP);
       const currentFmt = file._formatOverride || targetFormat;
       const fmtOptions = allFmts.map(f =>
         `<option value="${f}" ${f === currentFmt ? 'selected' : ''}>${f.toUpperCase()}</option>`
       ).join('');
+      const overrideHTML = kind === 'image'
+        ? `<select class="fmt-override" title="Format untuk file ini" aria-label="Format override">${fmtOptions}</select>`
+        : '';
 
       const sizeWarnHtml = (!res && file.size > Converter.WARN_BYTES)
         ? `<div class="size-warn">⚠ File besar, mungkin lambat</div>` : '';
 
       item.innerHTML = `
         <div class="file-drag-handle" title="Seret untuk urut ulang">⠿</div>
-        <img class="file-thumb" src="${file._thumbUrl}" alt="" />
+        ${thumbHTML}
         <div class="file-info">
           <div class="file-name" title="${file.name}">${file.name}</div>
           <div class="file-meta">
@@ -310,17 +338,15 @@
           ${sizeWarnHtml}
         </div>
         <div class="file-actions">
-          <select class="fmt-override" title="Format untuk file ini" aria-label="Format override">
-            ${fmtOptions}
-          </select>
+          ${overrideHTML}
           ${statusHTML}
           ${actionHTML}
           <button class="file-remove" title="Hapus" aria-label="Hapus file">×</button>
         </div>
       `;
 
-      // FEATURE 5 — per-file override listener
-      item.querySelector('.fmt-override').addEventListener('change', e => {
+      // FEATURE 5 — per-file override listener (only present for image files)
+      item.querySelector('.fmt-override')?.addEventListener('change', e => {
         const chosen = e.target.value;
         file._formatOverride = (chosen === targetFormat) ? null : chosen;
         // Don't re-render the whole list, just let it persist
@@ -411,6 +437,13 @@
   // ══════════════════════════════════════════
   convertBtn.addEventListener('click', async () => {
     if (!files.length) return;
+
+    // Route to the document pipeline if the output is PDF/HTML, or any input is PDF/HTML.
+    const kinds = (typeof DocConverter !== 'undefined') ? files.map(f => DocConverter.detectKind(f)) : [];
+    const involvesDoc = targetFormat === 'pdf' || targetFormat === 'html'
+      || kinds.some(k => k === 'pdf' || k === 'html');
+    if (involvesDoc) { await runDocJob(); return; }
+
     convertBtn.disabled = true;
     downloadAllBtn.style.display = 'none';
     progressBar.style.display = 'block';
@@ -440,6 +473,7 @@
     });
 
     results.forEach(r => { if (r && r.blob && !r.url) r.url = URL.createObjectURL(r.blob); });
+    autoDownloadAll(results.filter(r => r && r.blob));
 
     const doneCount = results.filter(r => r && r.blob).length;
     convertBtn.textContent = `Konversi Semua`;
@@ -447,6 +481,25 @@
     setTimeout(() => { progressBar.style.display = 'none'; }, 700);
     render();
   });
+
+  // ══════════════════════════════════════════
+  // Auto-download hasil konversi (tombol Unduh manual = cadangan)
+  // ══════════════════════════════════════════
+  function triggerDownload(url, filename) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || 'download';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  // Unduh setiap output otomatis. 1 file → langsung; banyak file → berjeda
+  // agar tidak di-drop browser (Chrome minta izin "unduh banyak file" sekali).
+  function autoDownloadAll(items) {
+    const list = (items || []).filter(it => it && it.url && it.filename);
+    list.forEach((it, i) => setTimeout(() => triggerDownload(it.url, it.filename), i * 350));
+  }
 
   // ── Download ZIP ──
   downloadAllBtn.addEventListener('click', async () => {
@@ -462,6 +515,108 @@
     a.click();
     downloadAllBtn.textContent = '⬇ Unduh ZIP';
     downloadAllBtn.disabled = false;
+  });
+
+  // ══════════════════════════════════════════
+  // Document conversion pipeline (HTML↔PDF · PDF→Image · Image→PDF)
+  // ══════════════════════════════════════════
+  async function runDocJob() {
+    if (typeof DocConverter === 'undefined') { UI.showAlert('upload-alert', 'danger', 'Modul belum siap', 'Library konversi dokumen belum termuat.'); return; }
+
+    convertBtn.disabled = true;
+    convertBtn.textContent = 'Mengonversi…';
+    downloadAllBtn.style.display = 'none';
+    hideDocResults();
+    results = new Array(files.length).fill(null);
+    render();
+    progressBar.style.display = 'block';
+    progressFill.style.width = '0%';
+    if (progressLabel) progressLabel.textContent = `0 / ${files.length}`;
+
+    const opts = {
+      quality: parseInt(qualitySlider.value),
+      bg:      bgColorInput.value,
+      resize:  (resizeW.value || resizeH.value) ? {
+        width: parseInt(resizeW.value) || 0,
+        height: parseInt(resizeH.value) || 0,
+        keepAspect: keepAspect.checked,
+      } : null,
+      newName: renameInput.value.trim() || null,
+    };
+
+    let out;
+    try {
+      out = await DocConverter.run(files, targetFormat, opts, (done, total) => {
+        progressFill.style.width = Math.round((done / total) * 100) + '%';
+        if (progressLabel) progressLabel.textContent = `${done} / ${total}`;
+      });
+    } catch (err) {
+      UI.showAlert('upload-alert', 'danger', 'Konversi gagal', err.message || String(err));
+      convertBtn.disabled = false;
+      convertBtn.textContent = 'Konversi Semua';
+      progressBar.style.display = 'none';
+      return;
+    }
+
+    docOutputs = out.outputs || [];
+    renderDocResults(docOutputs, out.notes || []);
+    autoDownloadAll(docOutputs);
+
+    convertBtn.disabled = false;
+    convertBtn.textContent = 'Konversi Semua';
+    setTimeout(() => { progressBar.style.display = 'none'; }, 700);
+  }
+
+  function renderDocResults(outputs, notes) {
+    const card     = document.getElementById('doc-results');
+    const list     = document.getElementById('doc-results-list');
+    const notesBox = document.getElementById('doc-results-notes');
+    const emptyMsg = document.getElementById('doc-results-empty');
+    const zipBtn   = document.getElementById('doc-zip-btn');
+    if (!card || !list) return;
+
+    list.innerHTML = '';
+    outputs.forEach(o => {
+      o.url = URL.createObjectURL(o.blob);
+      const row = document.createElement('div');
+      row.className = 'doc-result-row';
+      const dims = o.width ? ` · ${o.width}×${o.height}` : '';
+      const src  = o.sourceLabel ? `${o.sourceLabel} · ` : '';
+      row.innerHTML = `
+        <div class="doc-result-info">
+          <div class="doc-result-name" title="${o.filename}">${o.filename}</div>
+          <div class="doc-result-meta">${src}${Converter.formatBytes(o.blob.size)}${dims}</div>
+        </div>
+        <a class="dl-btn" href="${o.url}" download="${o.filename}">Unduh</a>`;
+      list.appendChild(row);
+    });
+
+    if (notesBox) {
+      notesBox.innerHTML = (notes && notes.length)
+        ? notes.map(n => `<div class="doc-note">⚠ ${n}</div>`).join('')
+        : '';
+    }
+    if (emptyMsg) emptyMsg.style.display = outputs.length ? 'none' : 'block';
+    if (zipBtn)   zipBtn.style.display   = outputs.length > 1 ? 'inline-flex' : 'none';
+
+    card.style.display = 'block';
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  document.getElementById('doc-zip-btn')?.addEventListener('click', async () => {
+    if (typeof JSZip === 'undefined' || !docOutputs.length) return;
+    const btn = document.getElementById('doc-zip-btn');
+    const zip = new JSZip();
+    docOutputs.forEach(o => zip.file(o.filename, o.blob));
+    btn.textContent = 'Mempersiapkan ZIP…';
+    btn.disabled = true;
+    const content = await zip.generateAsync({ type: 'blob' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(content);
+    a.download = 'imgconvert-dokumen.zip';
+    a.click();
+    btn.textContent = '⬇ Unduh Semua (ZIP)';
+    btn.disabled = false;
   });
 
   // ── Init ──

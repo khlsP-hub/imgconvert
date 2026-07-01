@@ -846,3 +846,73 @@ footer {
 
   .file-drag-handle { display: none; }
 }
+/* ══════════════════════════════════════════
+   Document conversion (HTML↔PDF · PDF→Image)
+   ══════════════════════════════════════════ */
+
+/* "baru" badge on the document format buttons */
+.fmt-badge.new {
+  background: var(--accent-glow);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+/* Sub-label dividing image formats from document formats */
+.format-doc-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted2);
+  margin: 14px 0 8px;
+}
+.format-grid-doc { grid-template-columns: repeat(2, 1fr); }
+
+/* Generic (non-image) file thumbnail: PDF / HTML chip */
+.file-thumb.thumb-doc {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  background: var(--surface2);
+}
+
+/* Document results card */
+.doc-results-list { display: flex; flex-direction: column; gap: 8px; }
+
+.doc-result-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface2);
+}
+.doc-result-info { flex: 1; min-width: 0; }
+.doc-result-name {
+  font-size: 0.82rem;
+  color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.doc-result-meta {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.66rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.doc-note {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--warn);
+  background: var(--warn-bg);
+  border: 1px solid rgba(255,179,71,0.25);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-bottom: 6px;
+}

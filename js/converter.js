@@ -24,13 +24,20 @@ const Converter = (() => {
   function validate(file) {
     if (file.size > MAX_BYTES)
       return { ok: false, error: `File terlalu besar (maks. ${MAX_MB}MB). Ukuran: ${formatBytes(file.size)}.` };
-    if (!file.type.startsWith('image/') && !isKnownImageExtension(file.name))
-      return { ok: false, error: 'Format file tidak dikenali sebagai gambar.' };
+    if (!file.type.startsWith('image/') && !isKnownImageExtension(file.name) && !isDocumentFile(file))
+      return { ok: false, error: 'Format file tidak dikenali (gambar, PDF, atau HTML).' };
     return { ok: true, warn: file.size > WARN_BYTES ? `File besar (${formatBytes(file.size)}), proses mungkin lambat.` : null };
   }
 
   function isKnownImageExtension(name) {
     return /\.(png|jpg|jpeg|webp|gif|bmp|avif|tiff?|ico|svg|heic|heif|jfif)$/i.test(name);
+  }
+
+  /** PDF / HTML documents — handled by docconvert.js, allowed past validation. */
+  function isDocumentFile(file) {
+    const n = (file.name || '');
+    const t = (file.type || '');
+    return t === 'application/pdf' || t === 'text/html' || /\.(pdf|html?|htm)$/i.test(n);
   }
 
   /** Rough pre-conversion size estimate for quality preview badge */

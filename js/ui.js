@@ -26,6 +26,16 @@ const UI = (() => {
       title: 'AVIF: Butuh browser modern',
       body: 'Hanya Chrome 85+, Edge 85+, Firefox 93+. Jika gagal, coba WEBP.',
     },
+    pdf: {
+      level: 'info',
+      title: 'PDF: Gambar digabung · HTML dirender',
+      body: 'Banyak gambar → 1 PDF multi-halaman (A4). File .html → PDF. File PDF yang diunggah dilewati.',
+    },
+    html: {
+      level: 'warn',
+      title: 'HTML: hanya dari PDF (teks)',
+      body: 'PDF → HTML mengekstrak teks berposisi — mirip aslinya, tapi bukan salinan layout 100%. Gambar di dalam PDF tidak ikut.',
+    },
   };
 
   function renderFormatWarning(fmt) {
